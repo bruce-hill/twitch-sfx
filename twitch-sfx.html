@@ -1,0 +1,407 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Twitch Chat Viewer</title>
+<style>
+body {
+  background: #262623;
+  color: #ccc;
+  padding: 0;
+  margin: 0;
+}
+
+#everything {
+  height: 100vh;
+  display: flex;
+  flex-flow: column;
+}
+
+iframe {
+  display: block;
+}
+
+a {
+  color: #abf;
+}
+
+a:visited {
+  color: #cad;
+}
+
+.header {
+  display: flex;
+  flex-flow: row;
+}
+
+.header-section {
+  margin: 10px;
+}
+
+.chat-input-container {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  height:100%;
+}
+
+textarea.chat-input {
+  flex: 1;
+  resize: none;
+}
+
+.chat-submit {
+  height: 100%;
+}
+
+form {
+  display: inline;
+}
+
+.logged-in {
+  font-weight: bold;
+}
+.chat {
+  font: "Roobert","Helvetica Neue",Helvetica,Arial,sans-serif;
+  /*font: "Korolev","Helvetica Neue","Helvetica",sans-serif;*/
+  width: auto;
+  flex: 1;
+  border: 2px solid black;
+  overflow: auto;
+}
+.username {
+  font-weight: bold;
+}
+.message {
+  color: #ccc;
+}
+.sound-item {
+  display: inline-block;
+}
+input[type=checkbox][disabled] {
+  filter: invert(30%);
+}
+input[type=text] {
+  width: 6em;
+}
+
+.btn {
+	box-shadow:inset 0px 1px 0px 0px #caefab;
+	background:linear-gradient(to bottom, #77d42a 5%, #5cb811 100%);
+	background-color:#77d42a;
+	border-radius:6px;
+	border:1px solid #268a16;
+	display:inline-block;
+	cursor:pointer;
+	color:#306108;
+	font-family:Arial;
+	font-size:15px;
+	font-weight:bold;
+	padding:6px 24px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #aade7c;
+}
+.btn:hover {
+	background:linear-gradient(to bottom, #5cb811 5%, #77d42a 100%);
+	background-color:#5cb811;
+}
+.btn:active {
+	position:relative;
+	top:1px;
+}
+
+.btn-red {
+	box-shadow:inset 0px 1px 0px 0px #f7c5c0;
+	background:linear-gradient(to bottom, #fc8d83 5%, #e4685d 100%);
+	background-color:#fc8d83;
+	border-radius:6px;
+	border:1px solid #d83526;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	font-family:Arial;
+	font-size:15px;
+	font-weight:bold;
+	padding:6px 24px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #b23e35;
+}
+.btn-red:hover {
+	background:linear-gradient(to bottom, #e4685d 5%, #fc8d83 100%);
+	background-color:#e4685d;
+}
+.btn-red:active {
+	position:relative;
+	top:1px;
+}
+
+</style>
+    <script src="https://alca.sfo2.cdn.digitaloceanspaces.com/tmijs/1.4.2/tmi.min.js"></script>
+    <script>
+      function summonClip(parent, username, clip) {
+        let url = "https://www.youtube.com/embed/"+clip.videoID+"?autoplay=1&start="+clip.start+"&end="+clip.end;
+        let mutedLink = function(reason) {
+          let link = document.createElement('a');
+          link.setAttribute('href', url);
+          link.textContent = "("+reason+": " + clip.cmd+')';
+          parent.appendChild(link);
+        }
+        if (mute) {
+          mutedLink("Global mute");
+        } else if (!clip.enabled) {
+          mutedLink("Sound disabled");
+        } else if (Date.now() < (cooldowns[clip.videoID]||0)) {
+          mutedLink("On cooldown");
+        } else if (Date.now() < (cooldowns[clip.videoID+';'+username]||0)) {
+          mutedLink("On user cooldown");
+        } else {
+          let iframe = document.createElement('iframe');
+          cooldowns[clip.videoID] = Date.now() + clip.cooldown;
+          cooldowns[clip.videoID+';'+username] = Date.now() + clip.cooldown;
+          iframe.setAttribute('src', url);
+          iframe.setAttribute('allow', 'autoplay');
+          parent.appendChild(iframe);
+        }
+      }
+
+      function mixRGB(c1, c2, amount) {
+        const reSegment = /[\da-z]{2}/gi;
+        // Split into parts
+        var b1 = c1.replace("#","").match(reSegment);
+        var b2 = c2.replace("#","").match(reSegment);
+        var t, c = [];
+        for (var i=b1.length; i;) {
+          t = Math.round((1-amount)*parseInt(b1[--i],16)
+                         + amount*parseInt(b2[i],16)).toString(16);
+
+          // Add leading zero if only one character
+          c[i] = t.length == 2? '' + t : '0' + t; 
+        }
+        return '#'+c.join('');
+      }
+
+      function toggleMute(newMuted) {
+        mute = newMuted;
+        let btn = document.getElementById('mute-button');
+        btn.innerHTML = mute ? 'Unmute' : 'Mute All';
+        btn.className = mute ? 'btn' : 'btn-red';
+        for (let check of document.getElementsByClassName('sound-enabled')) {
+          check.disabled = mute;
+        }
+      }
+
+      function parseDuration(str) {
+        switch (str[str.length-1]) {
+          case "d": return 1000*60*60*24*parseFloat(str);
+          case "h": return 1000*60*60*parseFloat(str);
+          case "m": return 1000*60*parseFloat(str);
+          default: return 1000*parseFloat(str);
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id='everything'>
+      <div id='header' class='header'>
+        <form onsubmit='loadTwitch(); return false'>
+          <span class='header-section'>
+            Channel: <input type='text' id='channel'>
+          </span>
+          <span class='header-section'>
+            Username: <input type='text' id='username'>
+          </span>
+          <span class='header-section'>
+            OAuth Token: <input type='password' id='oauth'>
+          </span>
+          <a class='btn' href="javascript:{}" onclick="this.closest('form').onsubmit(); return false;">Go</a>
+        </form>
+      </div>
+      <div id='chat-container' class='chat'></div>
+      <div>
+        <form class='chat-input-container' onsubmit='sendChat(); return false'>
+          <textarea id='chat-input' class='chat-input'
+            placeholder='Type a message here...'></textarea>
+          <a style='line-height:30px' class='btn' href="javascript:{}" onclick="this.closest('form').submit(); return false;">Send</a>
+          <script>
+            function submitOnEnter(event){
+                if(event.which === 13){
+                    event.target.form.dispatchEvent(new Event("submit", {cancelable: true}));
+                    event.preventDefault();
+                }
+            }
+            document.getElementById('chat-input').addEventListener('keypress', submitOnEnter);
+          </script>
+        </form>
+      </div>
+      <div id='sounds' class='sound-area'></div>
+      <div id='sound-upload' class='sound-upload'>
+        <a class='btn-red' id='mute-button' href='javascript:{}' onClick="toggleMute(!mute)">Mute All</a>
+        <input type='file' id='sound-file' onclick='this.value = null' onchange='loadSounds(this.files[0])' style='display:none;'>
+        <label for='sound-file' class='btn'>Load sounds...</label>
+      </div>
+    </div>
+  </body>
+  <script>
+    mute = false;
+    twitchClient = null;
+
+    var sounds = {};
+    var cooldowns = {};
+    const container = document.getElementById("chat-container");
+    // Messages get deleted from the browser after this time interval
+    const messageLifetime = 5*60*1000; // 5 min
+    var channel = localStorage.twitchSFX_channel;
+    if (channel) document.getElementById('channel').value = channel;
+    var username = localStorage.twitchSFX_username;
+    if (username) document.getElementById('username').value = username;
+    var oauth = localStorage.twitchSFX_oauth;
+    if (oauth) document.getElementById('oauth').value = oauth;
+    if (localStorage.twitchSFX_sounds) loadSounds(localStorage.twitchSFX_sounds);
+
+    if (channel) {
+      loadTwitch();
+    }
+
+    function sendChat() {
+      if (!twitchClient || !channel) return;
+      let input = document.getElementById("chat-input");
+      twitchClient.say(channel, input.value);
+      input.value = "";
+    }
+
+    function loadSounds(soundsFile) {
+      if (typeof soundsFile != "string") {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          loadSounds(reader.result);
+        }
+        reader.readAsText(soundsFile);
+        return;
+      }
+      localStorage.twitchSFX_sounds = soundsFile;
+      sounds = {};
+
+      let soundsElem = document.getElementById('sounds');
+      while (soundsElem.firstChild) {
+        soundsElem.removeChild(soundsElem.firstChild);
+      }
+
+      soundsFile.split('\n').forEach(function(line, lineNum) {
+        if (!line || line.startsWith("#"))
+          return;
+
+        var cmds, videoID, range, cooldown, perUserCooldown, status;
+        [cmds,videoID,range,cooldown,perUserCooldown,status] = (
+            line.split(';').map(x=>x.trim()));
+        if (!cmds || !videoID) {
+          console.log("Skipping malformed line "+lineNum+": "+line);
+          return;
+        }
+        let [start,end] = (range||"0-99999").split('-');
+        let enabled = status != 'disabled';
+
+        if (videoID.startsWith('https://')) {
+          videoID = videoID.match(/v=([^&]+)/)[1];
+        }
+
+        cmds.split('/').map(x=>x.trim()).forEach(function(cmd) {
+          sounds[cmd] = {
+            cmd: cmd,
+            videoID: videoID,
+            start: start,
+            end: end,
+            enabled: enabled,
+            cooldown: parseDuration(cooldown || "0"),
+            perUserCooldown: parseDuration(perUserCooldown || "0"),
+          };
+        });
+
+        let soundItem = document.createElement('div');
+        soundItem.className = 'sound-item';
+        soundItem.innerHTML = "<input type='checkbox' class='sound-enabled' onclick='sounds[\""+cmds+"\"].enabled = this.checked' "+(enabled? 'checked' : '')+">"
+          +"<a href='https://www.youtube.com/embed/"+videoID+"?autoplay=1&start="+start+"&end="+end+"' target='_blank'>"+cmds+"</a>";
+        soundsElem.appendChild(soundItem);
+      });
+    }
+
+    function loadTwitch() {
+      if (twitchClient) {
+        twitchClient.disconnect().then(function() {
+          twitchClient = null;
+          loadTwitch();
+        })
+        return;
+      }
+
+      localStorage.twitchSFX_channel = channel = document.getElementById('channel').value;
+      localStorage.twitchSFX_username = username = document.getElementById('username').value;
+      localStorage.twitchSFX_oauth = oauth = document.getElementById('oauth').value;
+
+      twitchClient = new tmi.client({
+        identity: (username && oauth) ? {
+          username: username,
+          password: oauth,
+        } : null,
+        secure: true,
+        channels: [channel],
+      });
+
+      twitchClient.on('connected', function(addr, port) {
+        console.log("Connected to "+addr+":"+port)
+      });
+
+      var idCounter = 0;
+      twitchClient.on('message', function(target, context, msg, self) {
+        var msgElem = document.createElement("div");
+        msgElem.id = "chat-"+idCounter++;
+
+        var name = document.createElement("span");
+        name.style.color = mixRGB((context.color || "#FFFFFF"), "#FFFFFF", 0.3);
+        name.className = "username";
+        name.textContent = context["display-name"]+": ";
+        msgElem.appendChild(name);
+
+        var msgText = document.createElement("span");
+        var msgImaged = msg;
+        if (context.emotes) {
+          var offset = 0;
+          for (let emoteID in context.emotes) {
+            for (let instance of context.emotes[emoteID]) {
+              let [start,end] = instance.match(/\d+/g);
+              let name = msg.substr(start,end);
+              let imgHTML = "<img title='"+name+"' src='https://static-cdn.jtvnw.net/emoticons/v1/"+emoteID+"/1.0'></img>";
+              msgImaged = (
+                  msgImaged.substr(0,start+offset-1)
+                  +imgHTML
+                  +msgImaged.substr(end+offset+1));
+              offset += imgHTML.length - (end+0-start);
+            }
+          }
+        }
+        msgText.innerHTML = msgImaged;
+
+        msgText.className = "message";
+        msgElem.appendChild(msgText);
+
+        for (var word of msg.split(' ')) {
+          if (sounds[word]) {
+            summonClip(msgElem, context["display-name"], sounds[word]);
+            break;
+          }
+        }
+
+        let doScroll = container.scrollHeight - container.scrollTop - 50 <= container.clientHeight;
+        container.appendChild(msgElem);
+        if (doScroll) msgElem.scrollIntoView();
+
+        setTimeout(function() {
+          container.removeChild(msgElem);
+        }, messageLifetime);
+      });
+
+      twitchClient.connect();
+    }
+
+  </script>
+
+</html>

@@ -1,0 +1,24 @@
+# This is a sound clips file
+# Lines starting with "#" and blank lines are ignored
+# Format is:
+# <cmd>[,<cmd2>,...];<video>;<start>-<end>;<global cooldown>;<per-user-cooldown>[;disabled]
+# Malformed lines will also be skipped and will not prevent other lines from
+# being parsed.
+
+# Jojo (joeseph) "Oh NO!"
+ohno;KWreHiN_E-Q;9-12;1m;;
+
+# Darth Vader Noooo
+NO/noo/nooo/noooo/nooooo;https://www.youtube.com/watch?v=WWaLxFIVX1s;;1m;;
+
+# Metal gear alert
+monkaS;https://www.youtube.com/watch?v=8yGfQak-q9M;;1m;;
+
+# Anime wow
+PogChamp/wow/animewow;https://www.youtube.com/watch?v=8URukvnUYTw;;1m;;
+
+# Clapping
+Clap;https://www.youtube.com/watch?v=w0xbP83McGk;1-4;1m;;
+
+# Laughing
+lol/LOL/LUL/lul;https://www.youtube.com/watch?v=lYnhckZcllU;35-37;1m;;
