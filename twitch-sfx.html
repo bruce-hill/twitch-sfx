@@ -223,7 +223,7 @@ td:first-of-type {
       function toggleMute(newMuted) {
         mute = newMuted;
         let btn = document.getElementById('mute-button');
-        btn.innerHTML = mute ? 'Unmute' : 'Mute All';
+        btn.innerHTML = mute ? 'Enable Audio' : 'Disable Audio';
         btn.className = mute ? 'btn' : 'btn-red';
         for (let check of document.getElementsByClassName('sound-enabled')) {
           check.disabled = mute;
@@ -286,7 +286,7 @@ td:first-of-type {
       <div id='sound-upload' class='sound-upload'>
         <input type='file' id='sound-file' onclick='this.value = null' onchange='loadSounds(this.files[0])' style='display:none;'>
         <label for='sound-file' class='btn'>Load sounds from file...</label>
-        <a class='btn-red' id='mute-button' href='javascript:{}' onClick="toggleMute(!mute)">Mute All</a>
+        <a class='btn-red' id='mute-button' href='javascript:{}' onClick="toggleMute(!mute)">Disable Audio</a>
       </div>
       <div id='chat-container' class='chat'></div>
       <div>
