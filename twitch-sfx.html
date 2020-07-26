@@ -269,7 +269,7 @@ td:first-of-type {
     <div id='everything'>
       <h1>Twitch SFXer</h1>
       <p>This page loads a Twitch channel's comments, and plays sound effects from youtube videos.</p>
-      <form class='header' onsubmit='loadTwitch(); return false'>
+      <form class='header' onsubmit='toggleTwitch(); return false'>
         <table>
           <tr><td>Channel:</td>
             <td><input type='text' id='channel'></td></tr>
@@ -278,8 +278,8 @@ td:first-of-type {
           <tr><td>OAuth <a title='Click here to get a Twitch OAuth login token' href='https://twitchapps.com/tmi/'>[?]</a> (optional):</td>
             <td><input type='password' id='oauth'></td></tr>
         </table>
-        <a class='btn' href="javascript:{}" style='line-height:120px'
-          onclick="this.closest('form').onsubmit(); return false;">Go</a><td></td>
+        <a class='btn' href="javascript:{}" style='line-height:120px' id='connect-btn'
+          onclick="this.closest('form').onsubmit(); return false;">Connect</a><td></td>
       </form>
       <h2>Sounds</h2>
       <div id='sounds' class='sound-area'></div>
@@ -326,10 +326,6 @@ td:first-of-type {
     var oauth = localStorage.twitchSFX_oauth;
     if (oauth) document.getElementById('oauth').value = oauth;
     if (localStorage.twitchSFX_sounds) loadSounds(localStorage.twitchSFX_sounds);
-
-    if (channel) {
-      loadTwitch();
-    }
 
     function sendChat() {
       if (!twitchClient || !channel) return;
@@ -443,14 +439,23 @@ td:first-of-type {
       });
     }
 
-    function loadTwitch() {
+    function toggleTwitch() {
       if (twitchClient) {
-        twitchClient.disconnect().then(function() {
-          twitchClient = null;
-          loadTwitch();
-        })
-        return;
+        disconnectTwitch();
+      } else {
+        connectTwitch();
       }
+    }
+
+    function disconnectTwitch() {
+      if (!twitchClient) return;
+      twitchClient.disconnect().then(function() {
+        twitchClient = null;
+      })
+    }
+
+    function connectTwitch() {
+      if (twitchClient) return;
 
       localStorage.twitchSFX_channel = channel = document.getElementById('channel').value;
       localStorage.twitchSFX_username = username = document.getElementById('username').value;
@@ -466,7 +471,25 @@ td:first-of-type {
       });
 
       twitchClient.on('connected', function(addr, port) {
-        console.log("Connected to "+addr+":"+port)
+        console.log("Connected to "+addr+":"+port);
+        let joined = document.createElement("div");
+        joined.innerHTML = "<em>Joined "+channel+".</em>";
+        container.appendChild(joined);
+
+        let btn = document.getElementById('connect-btn');
+        btn.textContent = 'Disconnect';
+        btn.className = 'btn-red';
+      });
+
+      twitchClient.on('disconnected', function() {
+        let leftMsg = document.createElement("div");
+        leftMsg.innerHTML = "<em>Left "+channel+".</em>";
+        container.appendChild(leftMsg);
+        container.appendChild(document.createElement('hr'));
+
+        let btn = document.getElementById('connect-btn');
+        btn.textContent = 'Connect';
+        btn.className = 'btn';
       });
 
       var idCounter = 0;
