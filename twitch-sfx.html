@@ -82,7 +82,7 @@ input[type=checkbox][disabled] {
   filter: invert(30%);
 }
 input[type=text] {
-  width: 6em;
+  width: 7em;
 }
 
 .btn {
@@ -205,19 +205,21 @@ input[type=text] {
       function emotify(msg, emotes) {
         let sortedEmotes = [];
         for (let emoteID in emotes) {
-          var emoteName, start, end, imgHTML;
           for (let instance of emotes[emoteID]) {
-            [start,end] = instance.match(/\d+/g);
-            emoteName = msg.substr(1*start,1*end+1);
-            imgHTML = "<img title='"+emoteName+"' src='https://static-cdn.jtvnw.net/emoticons/v1/"+emoteID+"/1.0'></img>";
-            sortedEmotes.push({start:start, end:end, html:imgHTML});
+            let [start, end] = instance.match(/\d+/g);
+            start = 1*start; end = 1*end;
+            let emoteName = msg.substring(start,end+1);
+            sortedEmotes.push({
+              start:start, end:end,
+              html:"<img title='"+emoteName+"' src='https://static-cdn.jtvnw.net/emoticons/v1/"+emoteID+"/1.0'></img>",
+            });
           }
         }
         // iterate backwards through emotes:
         sortedEmotes.sort((e1,e2)=>e1.start < e2.start);
         var ret = msg;
         for (let e of sortedEmotes) {
-          ret = (ret.substr(0, 1*e.start) + e.html + ret.substr(1*e.end+1));
+          ret = (ret.substring(0, e.start) + e.html + ret.substring(e.end+1));
         }
         return ret;
       }
