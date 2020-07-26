@@ -148,7 +148,7 @@ input[type=text] {
         }
         if (mute) {
           mutedLink("Global mute");
-        } else if (!clip.enabled) {
+        } else if (clip.disabled) {
           mutedLink("Sound disabled");
         } else if (Date.now() < (cooldowns[clip.videoID]||0)) {
           mutedLink("On cooldown");
@@ -286,10 +286,59 @@ input[type=text] {
         soundsElem.removeChild(soundsElem.firstChild);
       }
 
-      soundsFile.split('\n').forEach(function(line, lineNum) {
+      // Parse the config file:
+      soundsFile.split('\n').forEach((line, lineNum)=> {
         if (!line || line.startsWith("#"))
           return;
 
+        // Example:
+        // ohno: url=KWreHiN_E-Q@9-12 cooldown=1m userCooldown=2m disabled
+        let [cmds, attrs] = line.split('->',2).map(x=>x.trim());
+        if (!cmds || !attrs) {
+          return;
+        }
+        let cmdObj = {
+          cooldown: parseDuration('1m'),
+          perUserCooldown: parseDuration('10m'),
+          start: 0,
+          end: 9999,
+        };
+        attrs.split(' ').filter(x=>x).map(x=>x.trim()).forEach((attr)=> {
+          if (attr.startsWith('cooldown=')) {
+            cmdObj.cooldown = parseDuration(attr.split('=',2)[1]);
+          } else if (attr.startsWith('userCooldown=')) {
+            cmdObj.userCooldown = parseDuration(attr.split('=',2)[1]);
+          } else if (attr == 'disabled' || attr == 'disabled=true' || attr == 'enabled=false') {
+            cmdObj.disabled = true;
+          } else {
+            let [video,range] = attr.split('@',2);
+            if (video.startsWith('https://') || video.startsWith('http://')) {
+              cmdObj.videoID = video.match(/v=([^&]+)/)[1];
+            } else {
+              cmdObj.videoID = video;
+            }
+            if (range) {
+              let [start,end] = range.split('-');
+              cmdObj.start = start;
+              cmdObj.end = end;
+            }
+          }
+        });
+        if (!cmdObj.videoID) {
+          return;
+        }
+
+        cmds.split('/').map(x=>x.trim()).forEach((cmd)=> {
+          sounds[cmd] = {cmd: cmd, ...cmdObj};
+        });
+
+        let soundItem = document.createElement('div');
+        soundItem.className = 'sound-item';
+        soundItem.innerHTML = "<input type='checkbox' class='sound-enabled' onclick='sounds[\""+cmds+"\"].disabled = !this.checked' "+(this.disabled?'':'checked')+">"
+          +"<a href='https://www.youtube.com/embed/"+cmdObj.videoID+"?autoplay=1&start="+cmdObj.start+"&end="+cmdObj.end+"' target='_blank'>"+cmds+"</a>";
+        soundsElem.appendChild(soundItem);
+
+        /*
         var cmds, videoID, range, cooldown, perUserCooldown, status;
         [cmds,videoID,range,cooldown,perUserCooldown,status] = (
             line.split(';').map(x=>x.trim()));
@@ -304,7 +353,7 @@ input[type=text] {
           videoID = videoID.match(/v=([^&]+)/)[1];
         }
 
-        cmds.split('/').map(x=>x.trim()).forEach(function(cmd) {
+        cmds.split('/').map(x=>x.trim()).forEach((cmd)=> {
           sounds[cmd] = {
             cmd: cmd,
             videoID: videoID,
@@ -321,6 +370,7 @@ input[type=text] {
         soundItem.innerHTML = "<input type='checkbox' class='sound-enabled' onclick='sounds[\""+cmds+"\"].enabled = this.checked' "+(enabled? 'checked' : '')+">"
           +"<a href='https://www.youtube.com/embed/"+videoID+"?autoplay=1&start="+start+"&end="+end+"' target='_blank'>"+cmds+"</a>";
         soundsElem.appendChild(soundItem);
+        */
       });
     }
 

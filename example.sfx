@@ -6,19 +6,19 @@
 # being parsed.
 
 # Jojo (joeseph) "Oh NO!"
-ohno;KWreHiN_E-Q;9-12;1m;;
+ohno -> KWreHiN_E-Q@9-12 cooldown=1m userCooldown=2m disabled
 
 # Darth Vader Noooo
-NO/noo/nooo/noooo/nooooo;https://www.youtube.com/watch?v=WWaLxFIVX1s;;1m;;
+NO/noo/nooo/noooo/nooooo -> https://www.youtube.com/watch?v=WWaLxFIVX1s 
 
 # Metal gear alert
-monkaS;https://www.youtube.com/watch?v=8yGfQak-q9M;;1m;;
+monkaS -> https://www.youtube.com/watch?v=8yGfQak-q9M
 
 # Anime wow
-PogChamp/wow/animewow;https://www.youtube.com/watch?v=8URukvnUYTw;;1m;;
+PogChamp/wow/animewow -> https://www.youtube.com/watch?v=8URukvnUYTw
 
 # Clapping
-Clap;https://www.youtube.com/watch?v=w0xbP83McGk;1-4;1m;;
+Clap -> https://www.youtube.com/watch?v=w0xbP83McGk@1-4 
 
 # Laughing
-lol/LOL/LUL/lul;https://www.youtube.com/watch?v=lYnhckZcllU;35-37;1m;;
+lol/LOL/LUL/lul -> https://www.youtube.com/watch?v=lYnhckZcllU@35-37
