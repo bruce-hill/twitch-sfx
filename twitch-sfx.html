@@ -7,25 +7,28 @@
 body {
   background: #262623;
   color: #ccc;
-  padding: 0;
+  padding: 20px;
   margin: 0;
+  height: 100vh;
+  box-sizing: border-box;  
 }
 
 #everything {
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-flow: column;
+  background: #262623;
+  max-width: 100ch;
+  margin-left:auto;
+  margin-right:auto;
 }
 
 h1 {
-  font-size: 1.5em;
-  margin: 0px;
-  padding: 8px;
+  font-size: 1.75em;
 }
 
-p {
-  padding-left: 12px;
-  margin: 4px;
+h2 {
+  font-size: 1.5em;
 }
 
 iframe {
@@ -43,8 +46,6 @@ a:visited {
 .header {
   display: flex;
   flex-flow: row;
-  margin-top: 12px;
-  margin-bottom: 12px;
 }
 
 .header-section {
@@ -257,6 +258,13 @@ input[type=text] {
           <a class='btn' href="javascript:{}" onclick="this.closest('form').onsubmit(); return false;">Go</a>
         </form>
       </div>
+      <h2>Sounds</h2>
+      <div id='sounds' class='sound-area'></div>
+      <div id='sound-upload' class='sound-upload'>
+        <input type='file' id='sound-file' onclick='this.value = null' onchange='loadSounds(this.files[0])' style='display:none;'>
+        <label for='sound-file' class='btn'>Load sounds from file...</label>
+        <a class='btn-red' id='mute-button' href='javascript:{}' onClick="toggleMute(!mute)">Mute All</a>
+      </div>
       <div id='chat-container' class='chat'></div>
       <div>
         <form class='chat-input-container' onsubmit='sendChat(); return false'>
@@ -273,12 +281,6 @@ input[type=text] {
             document.getElementById('chat-input').addEventListener('keypress', submitOnEnter);
           </script>
         </form>
-      </div>
-      <div id='sounds' class='sound-area'></div>
-      <div id='sound-upload' class='sound-upload'>
-        <a class='btn-red' id='mute-button' href='javascript:{}' onClick="toggleMute(!mute)">Mute All</a>
-        <input type='file' id='sound-file' onclick='this.value = null' onchange='loadSounds(this.files[0])' style='display:none;'>
-        <label for='sound-file' class='btn'>Load sounds...</label>
       </div>
     </div>
   </body>
