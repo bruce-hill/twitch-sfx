@@ -138,6 +138,7 @@ input[type=text] {
 </style>
     <script src="https://alca.sfo2.cdn.digitaloceanspaces.com/tmijs/1.4.2/tmi.min.js"></script>
     <script>
+      // Embed a youtube video clip
       function summonClip(parent, username, clip) {
         let url = "https://www.youtube.com/embed/"+clip.videoID+"?autoplay=1&start="+clip.start+"&end="+clip.end;
         let mutedLink = function(reason) {
@@ -190,6 +191,7 @@ input[type=text] {
         }
       }
 
+      // Parse duration strings into milliseconds
       function parseDuration(str) {
         switch (str[str.length-1]) {
           case "d": return 1000*60*60*24*parseFloat(str);
@@ -198,6 +200,29 @@ input[type=text] {
           default: return 1000*parseFloat(str);
         }
       }
+
+      // Replace emote strings with HTML images:
+      function emotify(msg, emotes) {
+        let sortedEmotes = [];
+        for (let emoteID in emotes) {
+          var emoteName, start, end, imgHTML;
+          for (let instance of emotes[emoteID]) {
+            [start,end] = instance.match(/\d+/g);
+            emoteName = msg.substr(1*start,1*end+1);
+            console.log(1*start, 1*end, emoteName);
+            imgHTML = "<img title='"+emoteName+"' src='https://static-cdn.jtvnw.net/emoticons/v1/"+emoteID+"/1.0'></img>";
+            sortedEmotes.push({start:start, end:end, html:imgHTML});
+          }
+        }
+        // iterate backwards through emotes:
+        sortedEmotes.sort((e1,e2)=>e1.start < e2.start);
+        var ret = msg;
+        for (let e of sortedEmotes) {
+          ret = (ret.substr(0, 1*e.start) + e.html + ret.substr(1*e.end+1));
+        }
+        return ret;
+      }
+
     </script>
   </head>
   <body>
@@ -414,19 +439,7 @@ input[type=text] {
         var msgText = document.createElement("span");
         var msgImaged = msg;
         if (context.emotes) {
-          var offset = 0;
-          for (let emoteID in context.emotes) {
-            for (let instance of context.emotes[emoteID]) {
-              let [start,end] = instance.match(/\d+/g);
-              let name = msg.substr(start,end);
-              let imgHTML = "<img title='"+name+"' src='https://static-cdn.jtvnw.net/emoticons/v1/"+emoteID+"/1.0'></img>";
-              msgImaged = (
-                  msgImaged.substr(0,start+offset-1)
-                  +imgHTML
-                  +msgImaged.substr(end+offset+1));
-              offset += imgHTML.length - (end+0-start);
-            }
-          }
+          msgImaged = emotify(msg, context.emotes);
         }
         msgText.innerHTML = msgImaged;
 
