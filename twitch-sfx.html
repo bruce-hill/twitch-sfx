@@ -17,6 +17,17 @@ body {
   flex-flow: column;
 }
 
+h1 {
+  font-size: 1.5em;
+  margin: 0px;
+  padding: 8px;
+}
+
+p {
+  padding-left: 12px;
+  margin: 4px;
+}
+
 iframe {
   display: block;
 }
@@ -32,6 +43,8 @@ a:visited {
 .header {
   display: flex;
   flex-flow: row;
+  margin-top: 12px;
+  margin-bottom: 12px;
 }
 
 .header-section {
@@ -228,6 +241,8 @@ input[type=text] {
   </head>
   <body>
     <div id='everything'>
+      <h1>Twitch SFXer</h1>
+      <p>This page loads a Twitch channel's comments, and plays sound effects from youtube videos.</p>
       <div id='header' class='header'>
         <form onsubmit='loadTwitch(); return false'>
           <span class='header-section'>
