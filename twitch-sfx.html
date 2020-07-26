@@ -209,7 +209,6 @@ input[type=text] {
           for (let instance of emotes[emoteID]) {
             [start,end] = instance.match(/\d+/g);
             emoteName = msg.substr(1*start,1*end+1);
-            console.log(1*start, 1*end, emoteName);
             imgHTML = "<img title='"+emoteName+"' src='https://static-cdn.jtvnw.net/emoticons/v1/"+emoteID+"/1.0'></img>";
             sortedEmotes.push({start:start, end:end, html:imgHTML});
           }
