@@ -1,7 +1,11 @@
 # This is a sound clips file
 # Lines starting with "#" and blank lines are ignored
 # Format is:
-# <cmd>[,<cmd2>,...];<video>;<start>-<end>;<global cooldown>;<per-user-cooldown>[;disabled]
+# <cmd>[/<cmd2>/...] -> <video>[@start-stop] options...
+# Where options can be any of:
+#   cooldown=<global cooldown>
+#   userCooldown=<per-user-cooldown>
+#   disabled
 # Malformed lines will also be skipped and will not prevent other lines from
 # being parsed.
 
