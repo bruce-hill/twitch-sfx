@@ -190,14 +190,14 @@ td:first-of-type {
           mutedLink("Global mute");
         } else if (clip.disabled) {
           mutedLink("Sound disabled");
-        } else if (Date.now() < (cooldowns[clip.videoID]||0)) {
+        } else if (Date.now() < clip.cooldown + (lastPlayTimes[clip.videoID]||0)) {
           mutedLink("On cooldown");
-        } else if (Date.now() < (cooldowns[clip.videoID+';'+username]||0)) {
+        } else if (Date.now() < clip.userCooldown + (lastPlayTimes[clip.videoID+';'+username]||0)) {
           mutedLink("On user cooldown");
         } else {
           let iframe = document.createElement('iframe');
-          cooldowns[clip.videoID] = Date.now() + clip.cooldown;
-          cooldowns[clip.videoID+';'+username] = Date.now() + clip.cooldown;
+          lastPlayTimes[clip.videoID] = Date.now();
+          lastPlayTimes[clip.videoID+';'+username] = Date.now();
           iframe.setAttribute('src', url);
           iframe.setAttribute('allow', 'autoplay');
           parent.appendChild(iframe);
@@ -268,7 +268,7 @@ td:first-of-type {
   <body>
     <div id='everything'>
       <h1>Twitch SFXer</h1>
-      <p>This page loads a Twitch channel's comments, and plays sound effects from youtube videos. Check out an example sound effects file <a href='example.sfx'>here</a>.</p>
+      <p>This page loads a Twitch channel's comments, and plays sound effects from youtube videos. Check out an example sound effects file <a href='example_sfx.txt'>here</a>.</p>
       <form class='header' onsubmit='toggleTwitch(); return false'>
         <table>
           <tr><td>Channel:</td>
@@ -287,6 +287,9 @@ td:first-of-type {
         <input type='file' id='sound-file' onclick='this.value = null' onchange='loadSounds(this.files[0])' style='display:none;'>
         <label for='sound-file' class='btn'>Load sounds from file...</label>
         <a class='btn-red' id='mute-button' href='javascript:{}' onClick="toggleMute(!mute)">Disable Audio</a>
+        <br>
+        <input type='text' id='sound-test' style='width:600px' value='KWreHiN_E-Q@9-12'>
+        <a class='btn' id='sound-test-button' href='javascript:{}' onClick="testSound()">Test Sound</a>
       </div>
       <div id='chat-container' class='chat'></div>
       <div>
@@ -315,7 +318,7 @@ td:first-of-type {
     twitchClient = null;
 
     var sounds = {};
-    var cooldowns = {};
+    var lastPlayTimes = {};
     const container = document.getElementById("chat-container");
     // Messages get deleted from the browser after this time interval
     const messageLifetime = 5*60*1000; // 5 min
@@ -332,6 +335,58 @@ td:first-of-type {
       let input = document.getElementById("chat-input");
       twitchClient.say(channel, input.value);
       input.value = "";
+    }
+
+    function parseSound(attrs) {
+      // Example:
+      // KWreHiN_E-Q@9-12 cooldown=1m userCooldown=2m disabled
+      let cmdObj = {
+        cooldown: parseDuration('1m'),
+        userCooldown: parseDuration('10m'),
+        start: 0,
+        end: 9999,
+      };
+      attrs.split(' ').filter(x=>x).map(x=>x.trim()).forEach((attr)=> {
+        if (attr.startsWith('cooldown=')) {
+          cmdObj.cooldown = parseDuration(attr.split('=',2)[1]);
+        } else if (attr.startsWith('userCooldown=')) {
+          cmdObj.userCooldown = parseDuration(attr.split('=',2)[1]);
+        } else if (attr == 'disabled' || attr == 'disabled=true' || attr == 'enabled=false') {
+          cmdObj.disabled = true;
+        } else {
+          let [video,range] = attr.split('@',2);
+          if (video.startsWith('https://') || video.startsWith('http://')) {
+            cmdObj.videoID = video.match(/v=([^&]+)/)[1];
+          } else {
+            cmdObj.videoID = video;
+          }
+          if (range) {
+            let [start,end] = range.split('-');
+            cmdObj.start = start;
+            cmdObj.end = end;
+          }
+        }
+      });
+      if (!cmdObj.videoID) {
+        return;
+      }
+      return cmdObj;
+    }
+
+    function testSound() {
+      let sound = parseSound(document.getElementById('sound-test').value);
+      if (!sound) {
+        alert("Sound failed to parse.");
+      }
+      let elem = document.createElement('div');
+      summonClip(elem, '<test>', sound);
+      container.appendChild(elem);
+      let doScroll = container.scrollHeight - container.scrollTop - 50 <= container.clientHeight;
+      container.appendChild(elem);
+      if (doScroll) elem.scrollIntoView();
+      setTimeout(function() {
+        container.removeChild(elem);
+      }, messageLifetime);
     }
 
     function loadSounds(soundsFile) {
@@ -356,42 +411,15 @@ td:first-of-type {
         if (!line || line.startsWith("#"))
           return;
 
-        // Example:
-        // ohno/ohnoo -> KWreHiN_E-Q@9-12 cooldown=1m userCooldown=2m disabled
+        // Example: foo/baz -> ...
         let [cmds, attrs] = line.split('->',2).map(x=>x.trim());
         if (!cmds || !attrs) {
           return;
         }
-        let cmdObj = {
-          cooldown: parseDuration('1m'),
-          perUserCooldown: parseDuration('10m'),
-          start: 0,
-          end: 9999,
-        };
-        attrs.split(' ').filter(x=>x).map(x=>x.trim()).forEach((attr)=> {
-          if (attr.startsWith('cooldown=')) {
-            cmdObj.cooldown = parseDuration(attr.split('=',2)[1]);
-          } else if (attr.startsWith('userCooldown=')) {
-            cmdObj.userCooldown = parseDuration(attr.split('=',2)[1]);
-          } else if (attr == 'disabled' || attr == 'disabled=true' || attr == 'enabled=false') {
-            cmdObj.disabled = true;
-          } else {
-            let [video,range] = attr.split('@',2);
-            if (video.startsWith('https://') || video.startsWith('http://')) {
-              cmdObj.videoID = video.match(/v=([^&]+)/)[1];
-            } else {
-              cmdObj.videoID = video;
-            }
-            if (range) {
-              let [start,end] = range.split('-');
-              cmdObj.start = start;
-              cmdObj.end = end;
-            }
-          }
-        });
-        if (!cmdObj.videoID) {
+
+        let cmdObj = parseSound(attrs);
+        if (!cmdObj)
           return;
-        }
 
         cmds.split('/').map(x=>x.trim()).forEach((cmd)=> {
           sounds[cmd] = {cmd: cmd, ...cmdObj};
@@ -402,7 +430,6 @@ td:first-of-type {
         soundItem.innerHTML = "<input type='checkbox' class='sound-enabled' onclick='sounds[\""+cmds+"\"].disabled = !this.checked' "+(this.disabled?'':'checked')+">"
           +"<a href='https://www.youtube.com/embed/"+cmdObj.videoID+"?autoplay=1&start="+cmdObj.start+"&end="+cmdObj.end+"' target='_blank'>"+cmds+"</a>";
         soundsElem.appendChild(soundItem);
-
       });
     }
 
